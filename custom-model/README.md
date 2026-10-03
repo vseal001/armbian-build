@@ -74,3 +74,18 @@ ir-keytable -t        # 按遥控器应打印 scancode 0x0181 等
 
 以上全部为新增文件；`compile.sh`、上游 `config/`、`patch/` 内容零改动。
 上游同步（merge `armbian/build` main）时无需解决冲突。
+
+## CI 工作流（.github/workflows/）
+
+- **rebuild.yml**：手动/ nightly 构建镜像。下拉分层：平台架构 → CPU 主控
+  （选错家族会在校验步列出该家族全部板卡）→ 型号（按 CPU 家族聚类、家族内
+  ABC 排序，kc2-k10plus 恒为默认第一位；无对应项选 custom 并填
+  board_override）→ 桌面（arm64 上游支持的全部 7 种 + 无桌面）→ 额外组件
+  （空格分隔，经 PACKAGE_LIST_ADDITIONAL 注入；openssh 等必备组件
+  BUILD_MINIMAL=no 下默认已含）→ 内核分支 → 发行版。构建成功后：
+  镜像发布为 GitHub Release（tag `img-<board>-<时间戳>`，持久下载链接）+
+  在「📦 构建通知」issue 中评论链接（仓库所有者会收到 GitHub 邮件）。
+- **sync-upstream.yml**：每天 05:43（北京）+ 手动。合并上游 armbian/build
+  main：无冲突 → 直接合并进 main 并自动运行
+  `custom-model/tools/gen_rebuild_yml.py` 刷新型号菜单；**有冲突 → 不直接
+  合并**，推送 `sync-upstream/<日期>` 分支并创建 PR 交人工处理。

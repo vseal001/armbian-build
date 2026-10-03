@@ -1,0 +1,70 @@
+name: sync-upstream
+
+# Daily sync of upstream armbian/build into our main:
+#   - no conflicts  -> merge directly, refresh the rebuild.yml board menu, push
+#   - conflicts     -> push upstream/main as a branch and open a PR instead
+#                      (never force-merge). Manual trigger any time.
+# Cron below is UTC 21:43 = 05:43 Beijing.
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "43 21 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: sync-upstream
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync upstream armbian/build
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      - name: Merge upstream (direct) or open PR (on conflict)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/armbian/build.git
+          git fetch upstream main
+
+          BEHIND=$(git rev-list --count main..upstream/main)
+          echo "upstream is ahead by $BEHIND commit(s)"
+          if [ "$BEHIND" -eq 0 ]; then
+            echo "::notice::already up to date with upstream armbian/build"
+            exit 0
+          fi
+
+          if git merge --no-edit upstream/main; then
+            # refresh the board menu so new upstream boards appear in the dropdown
+            python3 custom-model/tools/gen_rebuild_yml.py
+            if ! git diff --quiet .github/workflows/rebuild.yml; then
+              git add .github/workflows/rebuild.yml
+              git commit -m "chore: refresh rebuild.yml board menu after upstream sync"
+            fi
+            git push origin main
+            NEW=$(git log --oneline --no-merges "HEAD^..upstream/main" 2>/dev/null | head -5 | tr '\n' ';' || true)
+            echo "::notice::merged $BEHIND upstream commit(s) into main: $NEW"
+          else
+            CONFLICTS=$(git diff --name-only --diff-filter=U | tr '\n' ' ')
+            echo "::warning::merge conflicts in: $CONFLICTS"
+            git merge --abort
+            BR="sync-upstream/$(date -u +%Y%m%d-%H%M)"
+            git push origin upstream/main:refs/heads/"$BR"
+            gh pr create \
+              --base main --head "$BR" \
+              --title "上游同步冲突：upstream/main 需手动合并（$BEHIND 个提交）" \
+              --body "自动合并 main 与上游 armbian/build main 产生冲突，按规则不直接合并，已创建本 PR。冲突文件：$CONFLICTS 。请在 GitHub 网页编辑器或本地解决冲突后手动合并本 PR；合并后重跑本 workflow 以刷新 rebuild.yml 型号菜单。" \
+              --repo "$GITHUB_REPOSITORY"
+          fi

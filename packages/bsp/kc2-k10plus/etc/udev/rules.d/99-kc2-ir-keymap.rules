@@ -1,0 +1,4 @@
+# KC2 / K10Plus: load the Haigesen 3528 IR keymap when the IR receiver
+# (gpio-ir-recv, see rk3399-kc2-k10plus.dts) shows up.
+# Requires the ir-keytable package (installed via PACKAGE_LIST_BOARD).
+ACTION=="add", SUBSYSTEM=="input", ATTRS{name}=="*gpio-ir*", RUN+="/usr/bin/ir-keytable -c -w /etc/rc_keymaps/haigesen3528.toml -p nec,necx"

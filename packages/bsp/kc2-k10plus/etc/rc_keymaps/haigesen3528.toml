@@ -1,0 +1,30 @@
+# KC2 / K10Plus - Haigesen 3528 IR remote (NEC, address 0x01)
+#
+# Scancodes = (0x01 << 8) | command byte, decoded by the mainline
+# gpio-ir-receiver DTS node (standard NEC).  The command bytes were
+# reconstructed from pulse-level captures of the stock Android system
+# and are validated by the NEC command/~command complement rule:
+#
+#   power=0x81 menu=0x99 back=0x33 home=0x23 vol+=0x31 vol-=0x21
+#   OK=0x27 up=0x2D down=0x35 left=0xA3 right=0xA1 mouse-key=0x01
+#
+# The BSP pwm-remotectl driver saw a 1-bit-shifted view of the same
+# frames (usercode 0xFE01, scancodes 0xBF/0xB3/...); on mainline the
+# standard NEC decoder sees the true wire values above.
+
+[[protocols]]
+name = "haigesen3528"
+protocol = "nec"
+[protocols.scancodes]
+0x0181 = "KEY_POWER"
+0x0199 = "KEY_MENU"
+0x0133 = "KEY_BACK"
+0x0123 = "KEY_HOME"
+0x0131 = "KEY_VOLUMEUP"
+0x0121 = "KEY_VOLUMEDOWN"
+0x0127 = "KEY_ENTER"          # OK
+0x012d = "KEY_UP"
+0x0135 = "KEY_DOWN"
+0x01a3 = "KEY_LEFT"
+0x01a1 = "KEY_RIGHT"
+0x0101 = "KEY_CONTEXT_MENU"   # mouse-mode toggle key (was 0x10F0 on BSP)

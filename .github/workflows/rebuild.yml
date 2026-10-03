@@ -1,2 +1,658 @@
-- name: Rebuild Armbian
-  uses: armbian/build@v26.11.0-trunk.61
+name: rebuild
+
+# KC2/K10Plus custom image builder for the vseal001/armbian-build fork.
+#
+# - Manual "web trigger": run from the Actions tab (workflow_dispatch).
+# - Nightly build + upstream sync: OFF by default. Turn it on with the
+#   repository variable NIGHTLY_ENABLED=true (Settings -> Secrets and
+#   variables -> Actions -> Variables tab). Cron below is UTC 20:37 = 04:37 Beijing.
+#
+# Defaults build our kc2-k10plus board with the xfce desktop.
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: "平台架构 / target architecture (informational for most boards)"
+        required: true
+        default: "arm64"
+        type: choice
+        options: [arm64, armhf, amd64, riscv64]
+      soc:
+        description: "CPU 主控 / SoC family (sanity check against selected board)"
+        required: true
+        default: "rockchip64"
+        type: choice
+        options:
+          - "rockchip64"
+          - "cix-p1"
+          - "d1"
+          - "filogic"
+          - "genio"
+          - "imx6"
+          - "imx7d"
+          - "imx8m"
+          - "imx8ulp"
+          - "imx93"
+          - "jethub"
+          - "k3"
+          - "k3-beagle"
+          - "k3-tq"
+          - "ls1046a"
+          - "meson-axg"
+          - "meson-g12a"
+          - "meson-g12b"
+          - "meson-gxbb"
+          - "meson-gxl"
+          - "meson-s4t7"
+          - "meson-sm1"
+          - "meson8b"
+          - "mt7623"
+          - "mvebu"
+          - "mvebu64"
+          - "nuvoton-ma35d1"
+          - "odroidxu4"
+          - "phytium-embedded"
+          - "qrb2210"
+          - "realtek-rtd1619b"
+          - "rk35xx"
+          - "rockchip"
+          - "rockchip-rk3588"
+          - "rockchip-rv1106"
+          - "rockchip-rv1126"
+          - "s5p6818"
+          - "seeed-rk3576"
+          - "seeed-rk3588"
+          - "sophgo-sg200x-arm64"
+          - "sophgo-sg200x-riscv64"
+          - "spacemit"
+          - "spacemit-k3"
+          - "starfive"
+          - "starfive2"
+          - "sun4i"
+          - "sun50iw1"
+          - "sun50iw2"
+          - "sun50iw6"
+          - "sun50iw9"
+          - "sun50iw9-bpi"
+          - "sun55iw3"
+          - "sun55iw3-syterkit"
+          - "sun5i"
+          - "sun60iw2"
+          - "sun6i"
+          - "sun7i"
+          - "sun8i"
+          - "sun8i-v3s"
+          - "sun9i"
+          - "thead"
+          - "virtual"
+          - "zynq"
+      board:
+        description: "型号 / board (all boards in this fork + custom)"
+        required: true
+        default: "kc2-k10plus"
+        type: choice
+        options:
+          - "kc2-k10plus"
+          - "9tripod-x3568-v4"
+          - "README"
+          - "aml-a311d-cc"
+          - "aml-c400-plus"
+          - "aml-s805-mxq"
+          - "aml-s905d3-cc"
+          - "aml-s9xx-box"
+          - "aml-t95z-plus"
+          - "anbernic-rg-ds"
+          - "anbernic-rg-vita-pro"
+          - "arduino-uno-q"
+          - "armsom-aim7-io"
+          - "armsom-cm5-io"
+          - "armsom-cm5-rpi-cm4-io"
+          - "armsom-forge1"
+          - "armsom-sige1"
+          - "armsom-sige3"
+          - "armsom-sige5"
+          - "armsom-sige7"
+          - "armsom-w3"
+          - "avaota-a1"
+          - "ayn-odin2"
+          - "ayn-odin2mini"
+          - "ayn-odin2portal"
+          - "ayn-odin3"
+          - "ayn-thor"
+          - "bananapi"
+          - "bananapicm4io"
+          - "bananapif3"
+          - "bananapim1plus"
+          - "bananapim2"
+          - "bananapim2plus"
+          - "bananapim2pro"
+          - "bananapim2s"
+          - "bananapim2ultra"
+          - "bananapim2zero"
+          - "bananapim3"
+          - "bananapim4berry"
+          - "bananapim4zero"
+          - "bananapim5"
+          - "bananapim5pro"
+          - "bananapim64"
+          - "bananapim7"
+          - "bananapipro"
+          - "bananapir2"
+          - "bananapir2pro"
+          - "bananapir4"
+          - "beaglebadge"
+          - "beaglebone-ai64"
+          - "beagleplay"
+          - "beaglev"
+          - "beagley-ai"
+          - "beelinkx2"
+          - "bestv-r3300-l"
+          - "bigtreetech-cb1"
+          - "bigtreetech-cb2"
+          - "cainiao-cniot-core"
+          - "cherryba-m1"
+          - "cix-acpi"
+          - "clearfogbase"
+          - "clearfogpro"
+          - "clockworkpi-a06"
+          - "cm3588-nas"
+          - "coolpi-cm5"
+          - "coolpi-genbook"
+          - "cubie-a7z"
+          - "cubieboard"
+          - "cubieboard2"
+          - "cubieboard4"
+          - "cubietruck"
+          - "cubietruckplus"
+          - "cubox-i"
+          - "cyber-aib-rk3588"
+          - "dg-svr-865-tiny"
+          - "dshanpi-a1"
+          - "dshanpi-r1"
+          - "dusun-dsom-010r"
+          - "easepi-a2"
+          - "easepi-r2"
+          - "easy-eai-nano"
+          - "ebyte-ecb41-pge"
+          - "espressobin"
+          - "fe-som-rk3399"
+          - "fine3399"
+          - "firefly-itx-3588j"
+          - "firefly-rk3399"
+          - "forlinx-ok3506-s12"
+          - "fxblox-rk1"
+          - "gateway-dk"
+          - "gateway-gz80x"
+          - "gl-mt2500"
+          - "gl-mt2500-v2"
+          - "graperain-g3568-v2"
+          - "h96-tvbox-3566"
+          - "helios4"
+          - "helios64"
+          - "hikey960"
+          - "hinlink-h28k"
+          - "hinlink-h66k"
+          - "hinlink-h68k"
+          - "hinlink-h88k"
+          - "hinlink-hnas"
+          - "hinlink-ht2"
+          - "imb3588"
+          - "imx7sabre"
+          - "indiedroid-nova"
+          - "inovato-quadra"
+          - "jethubj100"
+          - "jethubj200"
+          - "jethubj80"
+          - "jetson-nano"
+          - "jp-tvbox-3566"
+          - "k3picoitx"
+          - "khadas-edge"
+          - "khadas-edge2"
+          - "khadas-vim1"
+          - "khadas-vim1s"
+          - "khadas-vim2"
+          - "khadas-vim3"
+          - "khadas-vim3l"
+          - "khadas-vim4"
+          - "kickpi-k3b"
+          - "kickpik2b"
+          - "lafrite"
+          - "lamobo-r1"
+          - "lckfb-taishanpi"
+          - "leez-p710"
+          - "lepotato"
+          - "licheepi-4a"
+          - "lime"
+          - "lime-a10"
+          - "lime-a33"
+          - "lime-a64"
+          - "lime2"
+          - "longanpi-3h"
+          - "longanpi-4b"
+          - "lubancat-3-v2"
+          - "lubancat-4"
+          - "lubancat-5io"
+          - "lubancat2"
+          - "luckfox-core3566"
+          - "luckfox-lyra-plus"
+          - "luckfox-lyra-ultra-w"
+          - "luckfox-lyra-zero-w"
+          - "luckfox-pico-max"
+          - "luckfox-pico-mini"
+          - "luckfox-rk3308b-nova"
+          - "maaxboard-8ulp"
+          - "macchiatobin-doubleshot"
+          - "mangopi-m28k"
+          - "mangopi-mq"
+          - "mba62xx-tqma62xx"
+          - "mba67xx-tqma67xx"
+          - "mba8mpxl"
+          - "mba8mpxl-ras314"
+          - "mba93xxca-tqma93xx"
+          - "mba93xxla-mini"
+          - "mekotronics-r58-4x4"
+          - "mekotronics-r58-minipc"
+          - "mekotronics-r58hd"
+          - "mekotronics-r58s2"
+          - "mekotronics-r58x"
+          - "mekotronics-r58x-4g"
+          - "mekotronics-r58x-pro"
+          - "melea1000"
+          - "mellowflyc5"
+          - "microzed"
+          - "milkv-duos-arm"
+          - "milkv-duos-riscv"
+          - "miqi"
+          - "mixtile-blade3"
+          - "mixtile-core3588e"
+          - "mixtile-edge2"
+          - "mk808c"
+          - "mksklipad50"
+          - "mkspi"
+          - "musebook"
+          - "musepipro"
+          - "nanopct3plus"
+          - "nanopct4"
+          - "nanopct6"
+          - "nanopct6-lts"
+          - "nanopi-m5"
+          - "nanopi-m6"
+          - "nanopi-neo3-plus"
+          - "nanopi-r1"
+          - "nanopi-r1s-h5"
+          - "nanopi-r28s"
+          - "nanopi-r2c"
+          - "nanopi-r2s"
+          - "nanopi-r2s-plus"
+          - "nanopi-r3s"
+          - "nanopi-r3s-lts"
+          - "nanopi-r4s"
+          - "nanopi-r4se"
+          - "nanopi-r5c"
+          - "nanopi-r5s"
+          - "nanopi-r6c"
+          - "nanopi-r6s"
+          - "nanopi-r76s"
+          - "nanopi-zero2"
+          - "nanopia64"
+          - "nanopiair"
+          - "nanopiduo"
+          - "nanopiduo2"
+          - "nanopifire3"
+          - "nanopik1plus"
+          - "nanopik2-s905"
+          - "nanopim1"
+          - "nanopim1plus"
+          - "nanopim1plus2"
+          - "nanopim3"
+          - "nanopim4"
+          - "nanopim4v2"
+          - "nanopineo"
+          - "nanopineo2"
+          - "nanopineo2black"
+          - "nanopineo3"
+          - "nanopineo4"
+          - "nanopineocore2"
+          - "nanopineoplus2"
+          - "nezha"
+          - "norco-emb-3531"
+          - "numaker-iot-ma35d16f90"
+          - "odroidc1"
+          - "odroidc2"
+          - "odroidc4"
+          - "odroidhc4"
+          - "odroidm1"
+          - "odroidm1s"
+          - "odroidm2"
+          - "odroidn2"
+          - "odroidn2l"
+          - "odroidxu4"
+          - "olimex-a20-olinuxino-micro"
+          - "olimex-som-a20"
+          - "olimex-som204-a20"
+          - "olimex-teres-a64"
+          - "olinux-som-a13"
+          - "onecloud"
+          - "oneplus-kebab"
+          - "orangepi"
+          - "orangepi-4a"
+          - "orangepi-cm5"
+          - "orangepi-r1"
+          - "orangepi-r1plus"
+          - "orangepi-r1plus-lts"
+          - "orangepi-rk3399"
+          - "orangepi2"
+          - "orangepi3"
+          - "orangepi3-lts"
+          - "orangepi3b"
+          - "orangepi4"
+          - "orangepi4-lts"
+          - "orangepi4pro"
+          - "orangepi5"
+          - "orangepi5-max"
+          - "orangepi5-plus"
+          - "orangepi5-ultra"
+          - "orangepi5b"
+          - "orangepi5pro"
+          - "orangepilite"
+          - "orangepilite2"
+          - "orangepimini"
+          - "orangepione"
+          - "orangepioneplus"
+          - "orangepipc"
+          - "orangepipc2"
+          - "orangepipcplus"
+          - "orangepiplus"
+          - "orangepiplus2e"
+          - "orangepiprime"
+          - "orangepir2s"
+          - "orangepirv2"
+          - "orangepiwin"
+          - "orangepizero"
+          - "orangepizero2"
+          - "orangepizero2w"
+          - "orangepizero3"
+          - "orangepizero3w"
+          - "orangepizeroplus"
+          - "orangepizeroplus2-h3"
+          - "orangepizeroplus2-h5"
+          - "panther-x2"
+          - "pcduino2"
+          - "pcduino3"
+          - "pcduino3nano"
+          - "photonicat2"
+          - "phytiumpi"
+          - "pine64"
+          - "pine64so"
+          - "pinebook-a64"
+          - "pinebook-pro"
+          - "pinecube"
+          - "pineh64"
+          - "pineh64-b"
+          - "pocketbeagle2"
+          - "pocketchip-sd"
+          - "qemu-uboot-arm64"
+          - "qemu-uboot-x86"
+          - "qemu-uefi-x86"
+          - "qidi-x6"
+          - "quartz64a"
+          - "quartz64b"
+          - "radxa-cm4-io"
+          - "radxa-cm5-io"
+          - "radxa-cubie-a5e"
+          - "radxa-dragon-q6a"
+          - "radxa-dragon-q8b"
+          - "radxa-e20c"
+          - "radxa-e24c"
+          - "radxa-e25"
+          - "radxa-e52c"
+          - "radxa-e54c"
+          - "radxa-nio-12l"
+          - "radxa-rock-4d"
+          - "radxa-zero"
+          - "radxa-zero2"
+          - "radxa-zero3"
+          - "recomputer-rk3576-devkit"
+          - "recomputer-rk3576-module-devkit"
+          - "recomputer-rk3588-devkit"
+          - "recore"
+          - "renegade"
+          - "retro-lite-cm5"
+          - "retroidpocket-rp5"
+          - "retroidpocket-rpmini"
+          - "rk322x-box"
+          - "rk3318-box"
+          - "rk3328-heltec"
+          - "rk3566-box-demo"
+          - "roc-rk3399-pc"
+          - "rock-2a"
+          - "rock-2f"
+          - "rock-3a"
+          - "rock-3c"
+          - "rock-4se"
+          - "rock-5-cm-rpi-cm4-io"
+          - "rock-5-cmio"
+          - "rock-5-itx"
+          - "rock-5a"
+          - "rock-5b"
+          - "rock-5b-plus"
+          - "rock-5c"
+          - "rock-5t"
+          - "rock-s0"
+          - "rock64"
+          - "rockpi-4a"
+          - "rockpi-4b"
+          - "rockpi-4bplus"
+          - "rockpi-4c"
+          - "rockpi-4cplus"
+          - "rockpi-e"
+          - "rockpi-n10"
+          - "rockpi-s"
+          - "rockpro64"
+          - "rpi4b"
+          - "sakurapi-rk3308b"
+          - "sk-am62-lp"
+          - "sk-am62-sip"
+          - "sk-am62b"
+          - "sk-am62p"
+          - "sk-am64b"
+          - "sk-am68"
+          - "sk-am69"
+          - "sk-tda4vm"
+          - "smart-am40"
+          - "sovol-sv08"
+          - "sovol-sv08-max"
+          - "sovol-zero"
+          - "star64"
+          - "station-m1"
+          - "station-m2"
+          - "station-m3"
+          - "station-p1"
+          - "station-p2"
+          - "sunvell-r69"
+          - "sweet-potato"
+          - "tanix-tx6"
+          - "tanix-tx6s"
+          - "tanix-tx6s-axp313"
+          - "thinkpad-x13s"
+          - "tinker-edge-r"
+          - "tinkerboard"
+          - "tinkerboard-2"
+          - "tmds62levm"
+          - "tmds64evm"
+          - "tq-smarc2-tqma8mpxs"
+          - "tritium-h3"
+          - "tritium-h5"
+          - "turing-rk1"
+          - "udoo"
+          - "uefi-arm64"
+          - "uefi-arm64-dt"
+          - "uefi-loong64"
+          - "uefi-riscv64"
+          - "uefi-x86"
+          - "unleashed"
+          - "unmatched"
+          - "virtual-qemu"
+          - "visionfive"
+          - "visionfive2"
+          - "walnutpi-1b"
+          - "walnutpi-1b-ddr3"
+          - "walnutpi-box"
+          - "walnutpi-zerow"
+          - "wdk2023"
+          - "x96-mate"
+          - "x96q"
+          - "xc3399fr"
+          - "xiaobao-nas"
+          - "xiaomi-elish"
+          - "xiaomi-sheng"
+          - "xpressreal-t3"
+          - "xt-q8l-v10"
+          - "youyeetoo-r1-v3"
+          - "youyeetoo-yy3588"
+          - "yy3568"
+          - "z28pro"
+          - "zeropi"
+          - "ztl-a568"
+          - "custom"
+      board_override:
+        description: "型号选 custom 时, 在这里填实际板卡名"
+        required: false
+        default: ""
+        type: string
+      desktop:
+        description: "桌面版本 / desktop environment"
+        required: true
+        default: "xfce"
+        type: choice
+        options: [xfce, gnome, lxde, kde-plasma, none]
+      branch:
+        description: "内核分支 / kernel branch"
+        required: true
+        default: "current"
+        type: choice
+        options: [current, edge]
+      release:
+        description: "发行版 / userland release"
+        required: true
+        default: "trixie"
+        type: choice
+        options: [trixie, bookworm]
+      sync_upstream:
+        description: "先合并上游 armbian/build main 再构建 / sync upstream first"
+        required: true
+        default: false
+        type: boolean
+  schedule:
+    - cron: "37 20 * * *"   # nightly, gated by NIGHTLY_ENABLED repo variable (default off)
+
+permissions:
+  contents: write
+
+concurrency:
+  group: rebuild-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Rebuild Armbian image
+    runs-on: ubuntu-22.04
+    timeout-minutes: 360
+    # nightly runs only pass this gate when the repo variable NIGHTLY_ENABLED=true
+    if: github.event_name != 'schedule' || vars.NIGHTLY_ENABLED == 'true'
+    env:
+      IN_ARCH: ${{ inputs.arch }}
+      IN_SOC: ${{ inputs.soc }}
+      IN_BOARD: ${{ inputs.board }}
+      IN_BOARD_OVERRIDE: ${{ inputs.board_override }}
+      IN_DESKTOP: ${{ inputs.desktop }}
+      IN_BRANCH: ${{ inputs.branch }}
+      IN_RELEASE: ${{ inputs.release }}
+      IN_SYNC_UPSTREAM: ${{ inputs.sync_upstream }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve build parameters
+        run: |
+          # scheduled runs carry no inputs -> defaults: kc2-k10plus + xfce desktop
+          BOARD="${IN_BOARD:-kc2-k10plus}"
+          if [ "$BOARD" = "custom" ]; then
+            BOARD="${IN_BOARD_OVERRIDE}"
+            [ -n "$BOARD" ] || { echo "::error::board=custom needs board_override"; exit 1; }
+          fi
+          BRANCH="${IN_BRANCH:-current}"
+          RELEASE="${IN_RELEASE:-trixie}"
+          DESKTOP="${IN_DESKTOP:-xfce}"
+          ARCH="${IN_ARCH:-arm64}"
+          SOC="${IN_SOC:-rockchip64}"
+          if [ "$DESKTOP" = "none" ]; then
+            BUILD_DESKTOP="no"; DE=""
+          else
+            BUILD_DESKTOP="yes"; DE="$DESKTOP"
+          fi
+          # soft sanity checks (do not block the build)
+          fam=$(grep -h "^BOARDFAMILY=" "config/boards/${BOARD}".* 2>/dev/null | head -1 | sed 's/^BOARDFAMILY="\([^"]*\)".*/\1/')
+          [ -n "$fam" ] || { echo "::error::board $BOARD not found in config/boards"; exit 1; }
+          [ "$fam" = "$SOC" ] || echo "::warning::selected SoC family '$SOC' != board family '$fam' (continuing)"
+          [ "$ARCH" = "arm64" ] || echo "::warning::arch '$ARCH' selected - most rockchip64 boards are arm64 only"
+          {
+            echo "BOARD=$BOARD"
+            echo "BRANCH=$BRANCH"
+            echo "RELEASE=$RELEASE"
+            echo "DESKTOP=$DESKTOP"
+            echo "ARCH=$ARCH"
+            echo "SOC=$SOC"
+            echo "BUILD_DESKTOP=$BUILD_DESKTOP"
+            echo "DE=$DE"
+          } >> "$GITHUB_ENV"
+
+      - name: Sync upstream armbian/build (nightly or on request)
+        if: github.event_name == 'schedule' || env.IN_SYNC_UPSTREAM == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git remote add upstream https://github.com/armbian/build.git
+          git fetch upstream main
+          git merge --no-edit upstream/main
+          if [ "${GITHUB_REF}" = "refs/heads/main" ]; then
+            git push origin main
+          else
+            echo "::notice::merged upstream into $(git branch --show-current); push skipped (not on main)"
+          fi
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /usr/local/lib/android /opt/ghc /opt/hostedtoolcache/CodeQL || true
+          df -h /
+
+      - name: Build image
+        run: |
+          sudo -E ./compile.sh build \
+            BOARD="$BOARD" \
+            BRANCH="$BRANCH" \
+            RELEASE="$RELEASE" \
+            BUILD_DESKTOP="$BUILD_DESKTOP" \
+            DESKTOP_ENVIRONMENT="$DE" \
+            DESKTOP_TIER=mid \
+            BUILD_MINIMAL=no \
+            KERNEL_CONFIGURE=no \
+            COMPRESS_OUTPUTIMAGE=sha,img
+
+      - name: Upload images
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: armbian-${{ env.BOARD }}-${{ env.BRANCH }}-${{ env.RELEASE }}-${{ env.DESKTOP }}
+          path: output/images/
+          if-no-files-found: error
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ github.run_number }}
+          path: output/logs/
+          if-no-files-found: ignore

@@ -667,7 +667,7 @@ jobs:
             DESKTOP_TIER=mid \
             BUILD_MINIMAL=no \
             KERNEL_CONFIGURE=no \
-            COMPRESS_OUTPUTIMAGE=sha,img \
+            COMPRESS_OUTPUTIMAGE=sha,xz \
             PACKAGE_LIST_ADDITIONAL="$EXTRA"
 
       - name: Publish image as release (persistent download link)
@@ -677,7 +677,11 @@ jobs:
         run: |
           if compgen -G "output/images/*.img" > /dev/null || compgen -G "output/images/*.img.xz" > /dev/null; then
             TAG="img-${BOARD}-$(date -u +%Y%m%d-%H%M%S)"
-            gh release create "$TAG" output/images/* \
+            # GitHub release assets are capped at 2 GiB per file - filter and warn
+            mapfile -t ASSETS < <(find output/images -maxdepth 1 -type f -size -2G)
+            SKIPPED=$(find output/images -maxdepth 1 -type f -size +2G -printf "%f " || true)
+            [ -n "$SKIPPED" ] && echo "::warning::files too large for release assets (skipped): $SKIPPED"
+            gh release create "$TAG" "${ASSETS[@]}" \
               --title "Armbian ${BOARD} ${BRANCH}/${RELEASE} ${DESKTOP}" \
               --notes "自动构建产物。日志: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
             echo "RELEASE_URL=${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/releases/tag/${TAG}" >> "$GITHUB_ENV"
@@ -686,7 +690,7 @@ jobs:
           fi
 
       - name: Notify via tracking issue (GitHub email to repo owner)
-        if: success()
+        if: always()
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -694,11 +698,11 @@ jobs:
           NUM=$(gh issue list --search "${TITLE} in:title" --author "app/github-actions[bot]" --state open --json number --jq ".[0].number // empty")
           if [ -z "$NUM" ]; then
             NUM=$(gh issue create --title "$TITLE" \
-              --body "本 issue 由 rebuild workflow 自动维护：每次构建成功会在此评论镜像下载链接。仓库所有者会收到 GitHub 邮件通知（可在 Settings -> Notifications 调整）。" \
+              --body "本 issue 由 rebuild workflow 自动维护：每次构建结束会在此评论镜像下载链接。仓库所有者会收到 GitHub 邮件通知（可在 Settings -> Notifications 调整）。" \
               | grep -oE "[0-9]+$")
           fi
-          gh issue comment "$NUM" --body "✅ **${BOARD}** ${BRANCH}/${RELEASE} · ${DESKTOP} 构建完成（额外组件: ${EXTRA:-无}）
-          - 镜像下载: ${RELEASE_URL:-（本跑无镜像文件，见 artifact）}
+          gh issue comment "$NUM" --body "${{ job.status == 'success' && '✅' || '❌' }} **${BOARD}** ${BRANCH}/${RELEASE} · ${DESKTOP} 构建结束（结论: ${{ job.status }}，额外组件: ${EXTRA:-无}）
+          - 镜像下载: ${RELEASE_URL:-（无 Release，见下方 artifact）}
           - 构建日志: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
 
       - name: Upload images artifact

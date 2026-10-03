@@ -49,6 +49,27 @@
 		pinctrl-0 = <&ir_int>;
 	};
 
+	/* per stock fdt: work LED = GPIO4_D5 (blue, timer blink once booted) */
+	leds {
+		compatible = "gpio-leds";
+		pinctrl-names = "default";
+		pinctrl-0 = <&work_led_pin>, <&standby_led_pin>;
+
+		work_led: led-0 {
+			label = "work";
+			gpios = <&gpio4 RK_PD5 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "timer";
+			default-state = "on";
+		};
+
+		standby_led: led-1 {
+			label = "standby";
+			gpios = <&gpio2 RK_PA5 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "backlight";
+			default-state = "off";
+		};
+	};
+
 	sdio_pwrseq: sdio-pwrseq {
 		compatible = "mmc-pwrseq-simple";
 		clocks = <&rk808 1>;
@@ -476,6 +497,16 @@
 	kc2-audio {
 		es8316_mclk_pin: es8316-mclk-pin {
 			rockchip,pins = <4 RK_PA0 1 &pcfg_pull_none>;
+		};
+	};
+
+	leds {
+		work_led_pin: work-led-pin {
+			rockchip,pins = <4 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;
+		};
+
+		standby_led_pin: standby-led-pin {
+			rockchip,pins = <2 RK_PA5 RK_FUNC_GPIO &pcfg_pull_none>;
 		};
 	};
 

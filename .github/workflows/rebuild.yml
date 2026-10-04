@@ -677,9 +677,10 @@ jobs:
         run: |
           if compgen -G "output/images/*.img" > /dev/null || compgen -G "output/images/*.img.xz" > /dev/null; then
             TAG="img-${BOARD}-$(date -u +%Y%m%d-%H%M%S)"
-            # GitHub release assets are capped at 2 GiB per file - filter and warn
-            mapfile -t ASSETS < <(find output/images -maxdepth 1 -type f -size -2G)
-            SKIPPED=$(find output/images -maxdepth 1 -type f -size +2G -printf "%f " || true)
+            # GitHub release assets are capped at 2 GiB per file - exact-byte check
+            # (find -size NG rounds units up, never use G here!)
+            mapfile -t ASSETS < <(find output/images -maxdepth 1 -type f -size -2147483648c)
+            SKIPPED=$(find output/images -maxdepth 1 -type f -size +2147483647c -printf "%f " || true)
             [ -n "$SKIPPED" ] && echo "::warning::files too large for release assets (skipped): $SKIPPED"
             gh release create "$TAG" "${ASSETS[@]}" \
               --title "Armbian ${BOARD} ${BRANCH}/${RELEASE} ${DESKTOP}" \
@@ -695,6 +696,10 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           TITLE="📦 构建通知 / build notifications"
+          # repo may have Issues disabled (forks do) - degrade to a warning, never fail the build
+          if ! gh issue list --search "${TITLE} in:title" --author "app/github-actions[bot]" --state open --json number > /dev/null 2>&1; then
+            echo "::warning::repository has Issues disabled - enable Issues in repo Settings to get email notifications"; exit 0
+          fi
           NUM=$(gh issue list --search "${TITLE} in:title" --author "app/github-actions[bot]" --state open --json number --jq ".[0].number // empty")
           if [ -z "$NUM" ]; then
             NUM=$(gh issue create --title "$TITLE" \

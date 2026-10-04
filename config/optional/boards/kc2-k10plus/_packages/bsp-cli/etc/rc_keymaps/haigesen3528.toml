@@ -5,6 +5,8 @@
 # (ir-keytable -t, all 12 keys captured 2026-10-04):
 #   power=0x40 menu=0x4c back=0x19 home=0x11 vol+=0x18 vol-=0x10
 #   OK=0x13 up=0x16 down=0x1a left=0x51 right=0x50 mouse-key=0x00
+# Custom mappings: vol+/vol- = PageUp/PageDown, HOME = screen lock;
+# MENU is consumed by kc2ir.py (right click), mouse-key toggles cursor mode
 # Relation to the BSP pwm-remotectl keycodes (0xBF/0xB3/...): true_cmd = ~k;
 # the BSP driver samples the frame with a 1-bit shift, so waveform-level
 # decodes of its shifted stream differ from the true wire values.
@@ -16,9 +18,9 @@ protocol = "nec"
 0x0140 = "KEY_POWER"
 0x014c = "KEY_MENU"
 0x0119 = "KEY_BACK"
-0x0111 = "KEY_HOME"
-0x0118 = "KEY_VOLUMEUP"
-0x0110 = "KEY_VOLUMEDOWN"
+0x0111 = "KEY_SCREENLOCK"
+0x0118 = "KEY_PAGEUP"
+0x0110 = "KEY_PAGEDOWN"
 0x0113 = "KEY_ENTER"          # OK
 0x0116 = "KEY_UP"
 0x011a = "KEY_DOWN"

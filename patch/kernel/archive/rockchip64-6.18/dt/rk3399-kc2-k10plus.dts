@@ -462,8 +462,6 @@
 		clocks = <&cru SCLK_I2S_8CH_OUT>;
 		clock-names = "mclk";
 		#sound-dai-cells = <0>;
-		pinctrl-names = "default";
-		pinctrl-0 = <&es8316_mclk_pin>;
 	};
 };
 
@@ -476,6 +474,10 @@
 &i2s0 {
 	rockchip,playback-channels = <8>;
 	rockchip,capture-channels = <8>;
+	status = "okay";
+};
+
+&i2s2 {
 	status = "okay";
 };
 
@@ -494,12 +496,6 @@
 };
 
 &pinctrl {
-	kc2-audio {
-		es8316_mclk_pin: es8316-mclk-pin {
-			rockchip,pins = <4 RK_PA0 1 &pcfg_pull_none>;
-		};
-	};
-
 	leds {
 		work_led_pin: work-led-pin {
 			rockchip,pins = <4 RK_PD5 RK_FUNC_GPIO &pcfg_pull_none>;

@@ -1,0 +1,12 @@
+[Unit]
+Description=KC2 IR mouse helper (menu=right-click, mouse-key toggles cursor mode)
+After=multi-user.target
+ConditionPathExists=/dev/input/by-path
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/bin/kc2ir.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

@@ -18,8 +18,8 @@
 |---|---|
 | 板卡配置 | `config/boards/kc2-k10plus.conf` |
 | 板卡 DTS（mainline，可直接编译） | `patch/kernel/archive/rockchip64-6.18/dt/rk3399-kc2-k10plus.dts` 与 `rockchip64-7.2/dt/` 同名文件（`dt/` 目录中的 DTS 会被构建系统原样拷入内核树并自动注册进 Makefile） |
-| IR 键表（ir-keytable TOML） | `packages/bsp/kc2-k10plus/etc/rc_keymaps/haigesen3528.toml` |
-| IR 键表加载规则 | `packages/bsp/kc2-k10plus/etc/udev/rules.d/99-kc2-ir-keymap.rules` |
+| IR 键表（ir-keytable TOML） | `config/optional/boards/kc2-k10plus/_packages/bsp-cli/etc/rc_keymaps/haigesen3528.toml` |
+| IR 键表加载规则 | `config/optional/boards/kc2-k10plus/_packages/bsp-cli/etc/udev/rules.d/99-kc2-ir-keymap.rules` |
 
 ## 硬件概要（反编译实测）
 
@@ -57,7 +57,7 @@ BSP 驱动解码窗口错位 1 位：实机 NEC 地址 0x01 被解码为 usercod
 | 右 | 0xAF | 0xA1 | 0x01A1 | KEY_RIGHT |
 | 鼠标键 | 0xFF | 0x01 | 0x0101 | KEY_CONTEXT_MENU |
 
-键值加载：镜像内置 `ir-keytable`（板卡配置 `PACKAGE_LIST_BOARD`），udev 在
+键值加载：镜像内置 `ir-keytable`（板卡配置 `PACKAGE_LIST_BOARD`）；注：bsp-cli 打包只取 `packages/bsp/common` 与 `config/optional/**/_packages/bsp-cli`，板级文件必须放后者，udev 在
 IR 设备出现时自动执行
 `ir-keytable -c -w /etc/rc_keymaps/haigesen3528.toml -p nec,necx`。
 

@@ -42,20 +42,22 @@ BSP 驱动解码窗口错位 1 位：实机 NEC 地址 0x01 被解码为 usercod
 键值呈现为 0xBF/0xB3/…（见 `rc_haigesen3528_ir.dtsi`）。mainline 标准 NEC
 解码直接看到线上真实值（从波形级捕获重建并通过 NEC 补码校验）：
 
-| 按键 | BSP scancode | 线上真实 cmd | mainline scancode (0x01xx) | keycode |
+| 按键 | BSP scancode | 真实 cmd（~k） | mainline scancode | keycode |
 |---|---|---|---|---|
-| 电源 | 0xBF | 0x81 | 0x0181 | KEY_POWER |
-| 菜单 | 0xB3 | 0x99 | 0x0199 | KEY_MENU |
-| 返回 | 0xE6 | 0x33 | 0x0133 | KEY_BACK |
-| HOME | 0xEE | 0x23 | 0x0123 | KEY_HOME |
-| 音量+ | 0xE7 | 0x31 | 0x0131 | KEY_VOLUMEUP |
-| 音量− | 0xEF | 0x21 | 0x0121 | KEY_VOLUMEDOWN |
-| 确认 | 0xEC | 0x27 | 0x0127 | KEY_ENTER |
-| 上 | 0xE9 | 0x2D | 0x012D | KEY_UP |
-| 下 | 0xE5 | 0x35 | 0x0135 | KEY_DOWN |
-| 左 | 0xAE | 0xA3 | 0x01A3 | KEY_LEFT |
-| 右 | 0xAF | 0xA1 | 0x01A1 | KEY_RIGHT |
-| 鼠标键 | 0xFF | 0x01 | 0x0101 | KEY_CONTEXT_MENU |
+| 电源 | 0xBF | 0x40 | 0x0140 | KEY_POWER |
+| 菜单 | 0xB3 | 0x4C | 0x014C | KEY_MENU |
+| 返回 | 0xE6 | 0x19 | 0x0119 | KEY_BACK |
+| HOME | 0xEE | 0x11 | 0x0111 | KEY_HOME |
+| 音量+ | 0xE7 | 0x18 | 0x0118 | KEY_VOLUMEUP |
+| 音量− | 0xEF | 0x10 | 0x0110 | KEY_VOLUMEDOWN |
+| 确认 | 0xEC | 0x13 | 0x0113 | KEY_ENTER |
+| 上 | 0xE9 | 0x16 | 0x0116 | KEY_UP |
+| 下 | 0xE5 | 0x1A | 0x011A | KEY_DOWN |
+| 左 | 0xAE | 0x51 | 0x0151 | KEY_LEFT |
+| 右 | 0xAF | 0x50 | 0x0150 | KEY_RIGHT |
+| 鼠标键 | 0xFF | 0x00 | 0x0100 | KEY_CONTEXT_MENU |
+
+> 真实命令码已于 2026-10-04 在实机用 `ir-keytable -t` 全 12 键逐一验证。
 
 键值加载：镜像内置 `ir-keytable`（板卡配置 `PACKAGE_LIST_BOARD`）；注：bsp-cli 打包只取 `packages/bsp/common` 与 `config/optional/**/_packages/bsp-cli`，板级文件必须放后者，udev 在
 IR 设备出现时自动执行

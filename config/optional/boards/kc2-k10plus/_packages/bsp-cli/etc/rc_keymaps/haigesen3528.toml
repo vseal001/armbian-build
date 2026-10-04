@@ -1,30 +1,27 @@
 # KC2 / K10Plus - Haigesen 3528 IR remote (NEC, address 0x01)
 #
-# Scancodes = (0x01 << 8) | command byte, decoded by the mainline
-# gpio-ir-receiver DTS node (standard NEC).  The command bytes were
-# reconstructed from pulse-level captures of the stock Android system
-# and are validated by the NEC command/~command complement rule:
-#
-#   power=0x81 menu=0x99 back=0x33 home=0x23 vol+=0x31 vol-=0x21
-#   OK=0x27 up=0x2D down=0x35 left=0xA3 right=0xA1 mouse-key=0x01
-#
-# The BSP pwm-remotectl driver saw a 1-bit-shifted view of the same
-# frames (usercode 0xFE01, scancodes 0xBF/0xB3/...); on mainline the
-# standard NEC decoder sees the true wire values above.
+# Scancodes = (0x01 << 8) | command byte, as decoded by the mainline
+# gpio-ir-receiver (standard NEC). Command bytes verified LIVE on the box
+# (ir-keytable -t, all 12 keys captured 2026-10-04):
+#   power=0x40 menu=0x4c back=0x19 home=0x11 vol+=0x18 vol-=0x10
+#   OK=0x13 up=0x16 down=0x1a left=0x51 right=0x50 mouse-key=0x00
+# Relation to the BSP pwm-remotectl keycodes (0xBF/0xB3/...): true_cmd = ~k;
+# the BSP driver samples the frame with a 1-bit shift, so waveform-level
+# decodes of its shifted stream differ from the true wire values.
 
 [[protocols]]
 name = "haigesen3528"
 protocol = "nec"
 [protocols.scancodes]
-0x0181 = "KEY_POWER"
-0x0199 = "KEY_MENU"
-0x0133 = "KEY_BACK"
-0x0123 = "KEY_HOME"
-0x0131 = "KEY_VOLUMEUP"
-0x0121 = "KEY_VOLUMEDOWN"
-0x0127 = "KEY_ENTER"          # OK
-0x012d = "KEY_UP"
-0x0135 = "KEY_DOWN"
-0x01a3 = "KEY_LEFT"
-0x01a1 = "KEY_RIGHT"
-0x0101 = "KEY_CONTEXT_MENU"   # mouse-mode toggle key (was 0x10F0 on BSP)
+0x0140 = "KEY_POWER"
+0x014c = "KEY_MENU"
+0x0119 = "KEY_BACK"
+0x0111 = "KEY_HOME"
+0x0118 = "KEY_VOLUMEUP"
+0x0110 = "KEY_VOLUMEDOWN"
+0x0113 = "KEY_ENTER"          # OK
+0x0116 = "KEY_UP"
+0x011a = "KEY_DOWN"
+0x0151 = "KEY_LEFT"
+0x0150 = "KEY_RIGHT"
+0x0100 = "KEY_CONTEXT_MENU"   # mouse-mode toggle key (was 0x10F0 on BSP)
